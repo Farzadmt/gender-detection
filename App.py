@@ -1,43 +1,67 @@
-import cv2
-import json
-import os
-from flask import Flask, request, jsonify
-from deepface import DeepFace
-
-app = Flask(__name__)
-
-# مسیر ذخیره عکس‌ها
-UPLOAD_FOLDER = "uploads"
-os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-
-@app.route('/detect-gender', methods=['POST'])
-def detect_gender():
-    if 'image' not in request.files:
-        return jsonify({"status": "error", "message": "No image provided"}), 400
-
-    image_file = request.files['image']
-    image_path = os.path.join(UPLOAD_FOLDER, "captured_face.jpg")
-    image_file.save(image_path)
-
-    response = {}
-
-    try:
-        result = DeepFace.analyze(image_path, actions=['gender'])
-        gender = result[0]['dominant_gender']
-
-        response = {
-            "status": "success",
-            "gender": gender,
-            "raw_data": result
+{
+    "name": "Gender Detection API",
+    "description": "An API that detects gender from an uploaded image using DeepFace.",
+    "version": "1.0",
+    "github_repo": "https://github.com/username/gender-detection",
+    "endpoints": [
+        {
+            "path": "/detect-gender",
+            "method": "POST",
+            "description": "Upload an image and get gender prediction.",
+            "content_type": "multipart/form-data",
+            "parameters": [
+                {
+                    "name": "image",
+                    "in": "formData",
+                    "required": true,
+                    "type": "file",
+                    "description": "Image file containing a human face."
+                }
+            ],
+            "responses": {
+                "200": {
+                    "description": "Successful gender prediction",
+                    "content": {
+                        "application/json": {
+                            "example": {
+                                "status": "success",
+                                "gender": "Woman",
+                                "raw_data": [
+                                    {
+                                        "dominant_gender": "Woman",
+                                        "gender": {
+                                            "Woman": 98.7,
+                                            "Man": 1.3
+                                        }
+                                    }
+                                ]
+                            }
+                        }
+                    }
+                },
+                "400": {
+                    "description": "Bad request (e.g. no image provided)",
+                    "content": {
+                        "application/json": {
+                            "example": {
+                                "status": "error",
+                                "message": "No image provided"
+                            }
+                        }
+                    }
+                },
+                "500": {
+                    "description": "Internal server error",
+                    "content": {
+                        "application/json": {
+                            "example": {
+                                "status": "error",
+                                "message": "Face not detected"
+                            }
+                        }
+                    }
+                }
+            }
         }
-    except Exception as e:
-        response = {
-            "status": "error",
-            "message": str(e)
-        }
-
-    # تبدیل خروجی به JSON و ارسال آن
-    return jsonify(response)
-
-if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    ]
+}
